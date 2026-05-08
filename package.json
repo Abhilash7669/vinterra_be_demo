@@ -1,0 +1,39 @@
+{
+  "name": "vinterra-expressjs-demo",
+  "version": "1.0.0",
+  "description": "Vinterra expressjs backend using typescript for demo",
+  "keywords": [
+    "mqtt",
+    "vinterra",
+    "webrtc"
+  ],
+  "license": "ISC",
+  "author": "Abhilash",
+  "type": "module",
+  "main": "/src/app.js",
+  "scripts": {
+    "compile": "npx tsc && tsc-alias",
+    "dev": "NODE_ENV=development node --watch dist/src/app.js",
+    "start": "node dist/src/app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.6.1",
+    "mqtt": "^5.15.1",
+    "uuid": "^14.0.0",
+    "ws": "^8.20.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
+  }
+}
