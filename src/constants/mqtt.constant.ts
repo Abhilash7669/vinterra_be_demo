@@ -29,7 +29,7 @@ export const MQTT_RECONNECT_DELAY_MS = 8000;
 
 const PROTOCOL: WebsocketProtocol = MQTT_DETAILS.tlsRequired ? "wss" : "ws";
 
-export const MQTT_BROKER_URL = `${PROTOCOL}://${MQTT_DETAILS.hostname}:${MQTT_DETAILS.websocketPort}/`;
+export const MQTT_BROKER_URL = `ws://${MQTT_DETAILS.hostname}:${MQTT_DETAILS.websocketPort}/`;
 
 export const MQTT_OPTIONS: mqtt.IClientOptions | undefined = {
   clientId: MQTT_DETAILS.identifier,
@@ -41,4 +41,4 @@ export const MQTT_OPTIONS: mqtt.IClientOptions | undefined = {
 };
 
 // === MQTT TOPICS === //
-export const SUBSCRIBE_TOPIC = "/vinterra/server";
+export const SUBSCRIBE_TOPIC = "device/events";

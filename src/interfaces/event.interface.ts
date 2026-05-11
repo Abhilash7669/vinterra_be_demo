@@ -1,15 +1,13 @@
 import { Document } from "mongoose";
 
-enum AnalyticsEventType {
-  FRISKING = 0x01,
-  ABANDONMENT = 0x02,
-  WEAPON = 0x03,
-}
+export type EventType = "frisking" | "abandonment" | "weapon";
+
+export type EventPriority = "high" | "medium" | "low";
 
 interface AnalyticsBbox {
   x1: number;
-  x2: number;
   y1: number;
+  x2: number;
   y2: number;
 }
 
@@ -17,51 +15,38 @@ interface AnalyticsKeypoint {
   x: number;
   y: number;
   confidence: number;
-  activatedAtUs: bigint;
+  activated_at_us: number;
 }
 
 interface FriskingMeta {
-  subjectBbox: AnalyticsBbox;
-  guardBbox: AnalyticsBbox;
+  subject_bbox: AnalyticsBbox;
+  guard_bbox: AnalyticsBbox;
   keypoints: AnalyticsKeypoint[];
 }
 
 interface AbandonmentMeta {
-  objectBbox: AnalyticsBbox;
+  object_bbox: AnalyticsBbox;
 }
 
 interface WeaponMeta {
-  weaponBbox: AnalyticsBbox;
+  weapon_bbox: AnalyticsBbox;
 }
 
 type AnalyticsEvent =
-  | { eventType: AnalyticsEventType.FRISKING; event: FriskingMeta }
-  | { eventType: AnalyticsEventType.ABANDONMENT; event: AbandonmentMeta }
-  | { eventType: AnalyticsEventType.WEAPON; event: WeaponMeta };
+  | { event_type: "frisking"; event: FriskingMeta; frisking_complete: 0 | 1 }
+  | { event_type: "abandonment"; event: AbandonmentMeta }
+  | { event_type: "weapon"; event: WeaponMeta };
 
 export type AnalyticsMetadata = AnalyticsEvent & {
-  cameraId: number;
+  camera_name: string;
   confidence: number;
-  startTimestampUs: number;
-  endTimestampUs: number;
-  thumbnailSize: number;
-  isResolved: number;
+  start_timestamp_us: number;
+  end_timestamp_us: number;
+  thumbnail_size: number;
 };
 
-export enum EventType {
-  FRISKING = "frisking",
-  ABANDONMENT = "abandonment",
-  WEAPON = "weapon",
-}
-
-export enum EventPriority {
-  HIGH = "high",
-  MEDIUM = "medium",
-  LOW = "low",
-}
-
 export interface IEvents {
-  cameraId: number;
+  cameraName: string;
   eventType: EventType;
   confidence: number;
   startTimestamp: Date;
@@ -73,3 +58,12 @@ export interface IEvents {
 }
 
 export interface IEventsModel extends IEvents, Document {}
+
+export type EventsParamsDTO = {
+  isResolved?: "false" | "true";
+  priority?: EventPriority;
+  startTimestamp?: string;
+  endTimestamp?: string;
+  confidence?: number;
+  eventType?: EventType;
+};

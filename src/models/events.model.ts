@@ -12,13 +12,12 @@ export const eventSchema = new Schema<IEventsModel>(
     //   ref: "Camera",
     //   required: true,
     // },
-    cameraId: {
-      type: Number,
+    cameraName: {
+      type: String,
       required: true,
     },
     eventType: {
       type: String,
-      enum: Object.values(EventType),
       required: true,
     },
     confidence: {
@@ -48,7 +47,6 @@ export const eventSchema = new Schema<IEventsModel>(
     },
     priority: {
       type: String,
-      enum: Object.values(EventPriority),
       required: true,
     },
   },

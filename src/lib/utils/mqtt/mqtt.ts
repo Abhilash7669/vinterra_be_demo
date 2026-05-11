@@ -47,8 +47,7 @@ export async function connectMqtt() {
       const event = transformAnalyticsMetadataToEvent(deviceEventMetadata);
       const savedEvent = await saveEvent(event);
       const isWeaponOrAbandonment =
-        event.eventType === EventType.WEAPON ||
-        event.eventType === EventType.ABANDONMENT;
+        event.eventType === "weapon" || event.eventType === "abandonment";
 
       if (isWeaponOrAbandonment) {
         console.log(savedEvent);

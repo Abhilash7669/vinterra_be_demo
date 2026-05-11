@@ -7,90 +7,78 @@ import {
 import { CustomAppError } from "@/lib/utils/error.utils.js";
 import Event from "@/models/events.model.js";
 
-function mapAnalyticsEventType(eventType: AnalyticsMetadata["eventType"]) {
+function getEventPriority(eventType: EventType): EventPriority {
   switch (eventType) {
-    case 0x01:
-      return EventType.FRISKING;
-    case 0x02:
-      return EventType.ABANDONMENT;
-    case 0x03:
-      return EventType.WEAPON;
+    case "abandonment":
+    case "weapon":
+      return "high";
+    case "frisking":
+      return "medium";
     default:
-      throw new CustomAppError("Invalid analytics event type", 400);
-  }
-}
-
-function getEventPriority(eventType: EventType) {
-  switch (eventType) {
-    case EventType.WEAPON:
-    case EventType.ABANDONMENT:
-      return EventPriority.HIGH;
-    case EventType.FRISKING:
-      return EventPriority.MEDIUM;
-    default:
-      return EventPriority.LOW;
+      return "low";
   }
 }
 
 export function transformAnalyticsMetadataToEvent(
   metadata: AnalyticsMetadata,
 ): IEvents {
-  const eventType = mapAnalyticsEventType(metadata.eventType);
+  const eventType = metadata.event_type;
+  const isResolved =
+    eventType === "frisking" ? metadata.frisking_complete === 1 : false;
 
   return {
-    cameraId: metadata.cameraId,
+    cameraName: metadata.camera_name,
     eventType,
     confidence: metadata.confidence,
-    startTimestamp: new Date(metadata.startTimestampUs / 1000),
-    endTimestamp: new Date(metadata.endTimestampUs / 1000),
+    startTimestamp: new Date(metadata.start_timestamp_us / 1000),
+    endTimestamp: new Date(metadata.end_timestamp_us / 1000),
     event: JSON.stringify(metadata.event),
-    thumbnailSize: metadata.thumbnailSize,
-    isResolved: metadata.isResolved === 0 ? false : true,
+    thumbnailSize: metadata.thumbnail_size,
+    isResolved,
     priority: getEventPriority(eventType),
   };
 }
 
 export const dummyDeviceFriskingMetadata: AnalyticsMetadata = {
-  eventType: 0x01,
-  cameraId: 1,
+  event_type: "frisking",
+  camera_name: "file_1",
   confidence: 0.94,
-  startTimestampUs: 1_717_243_200_000_000,
-  endTimestampUs: 1_717_243_205_000_000,
-  thumbnailSize: 4096,
+  start_timestamp_us: 1_717_243_200_000_000,
+  end_timestamp_us: 1_717_243_205_000_000,
+  thumbnail_size: 4096,
+  frisking_complete: 0,
   event: {
-    subjectBbox: {
+    subject_bbox: {
       x1: 120,
-      x2: 360,
       y1: 80,
+      x2: 360,
       y2: 640,
     },
-    guardBbox: {
+    guard_bbox: {
       x1: 420,
-      x2: 650,
       y1: 90,
+      x2: 650,
       y2: 650,
     },
     keypoints: [],
   },
-  isResolved: 0,
 };
 
 export const dummyDeviceWeaponMetadata: AnalyticsMetadata = {
-  eventType: 0x03,
-  cameraId: 2,
-  confidence: 0.88,
-  startTimestampUs: 1_717_243_210_000_000,
-  endTimestampUs: 1_717_243_212_000_000,
-  thumbnailSize: 2048,
+  event_type: "weapon",
+  camera_name: "file_2",
+  confidence: 0.50976449251174927,
+  start_timestamp_us: 3_400_000,
+  end_timestamp_us: 3_400_000,
+  thumbnail_size: 0,
   event: {
-    weaponBbox: {
-      x1: 220,
-      x2: 310,
-      y1: 180,
-      y2: 260,
+    weapon_bbox: {
+      x1: 299.4609375,
+      y1: 188.1875,
+      x2: 326.4375,
+      y2: 216.4140625,
     },
   },
-  isResolved: 1,
 };
 
 export const dummyBackendFriskingEvent: IEvents =
@@ -101,7 +89,7 @@ export const dummyBackendWeaponEvent: IEvents =
 
 export async function saveEvent(data: IEvents) {
   const {
-    cameraId,
+    cameraName,
     confidence,
     endTimestamp,
     event,
@@ -114,7 +102,7 @@ export async function saveEvent(data: IEvents) {
   try {
     const eventCreated = Event.create({
       confidence,
-      cameraId,
+      cameraName,
       endTimestamp,
       startTimestamp,
       event,
