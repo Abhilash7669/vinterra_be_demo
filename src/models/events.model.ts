@@ -7,18 +7,15 @@ import { model, Schema } from "mongoose";
 
 export const eventSchema = new Schema<IEventsModel>(
   {
-    // cameraId: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: "Camera",
-    //   required: true,
-    // },
     cameraName: {
       type: String,
       required: true,
+      index: true,
     },
     eventType: {
       type: String,
       required: true,
+      index: true,
     },
     confidence: {
       type: Number,
@@ -28,10 +25,12 @@ export const eventSchema = new Schema<IEventsModel>(
     startTimestamp: {
       type: Date,
       required: true,
+      index: true,
     },
     endTimestamp: {
       type: Date,
       required: true,
+      index: true,
     },
     event: {
       type: String,
@@ -44,10 +43,12 @@ export const eventSchema = new Schema<IEventsModel>(
     isResolved: {
       type: Boolean,
       default: true,
+      index: true,
     },
     priority: {
       type: String,
       required: true,
+      index: true,
     },
   },
   {

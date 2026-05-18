@@ -20,22 +20,28 @@ import mqtt from "mqtt";
 let client: mqtt.MqttClient;
 
 export async function connectMqtt() {
+  myLogger.log("======= MQTT CONNECTING =====");
   try {
     client = await mqtt.connectAsync(MQTT_BROKER_URL, MQTT_OPTIONS);
   } catch (error) {
+    myLogger.log(["====== ERROR CONNECTING TO MQTT =====\n", error]);
     if (error instanceof Error) {
       throw new CustomAppError(error.message, 500);
     } else {
       throw new CustomAppError(JSON.stringify(error), 500);
     }
   }
-  myLogger.log("MQTT-CONNECTED");
+  myLogger.log("========= MQTT-CONNECTED =========");
   client.subscribe(SUBSCRIBE_TOPIC, () => {
-    myLogger.log(`Subscribing to ${SUBSCRIBE_TOPIC}`);
+    myLogger.log(
+      `========= Subscribing to topic: ${SUBSCRIBE_TOPIC} =========`,
+    );
   });
 
   client.on("message", async (topic, payload) => {
     myLogger.log([
+      "==================== LIFE-CYCLE-START ==================== \n",
+      `========== MQTT HIT ==========\n`,
       `Topic received: ${topic}\n`,
       `Payload: ${payload.toString()}`,
     ]);
@@ -45,19 +51,65 @@ export async function connectMqtt() {
         payload.toString(),
       ) as AnalyticsMetadata;
       const event = transformAnalyticsMetadataToEvent(deviceEventMetadata);
+      myLogger.log("==== SAVING EVENT =====");
       const savedEvent = await saveEvent(event);
+      myLogger.log("==== EVENT SAVED =====");
       const isWeaponOrAbandonment =
         event.eventType === "weapon" || event.eventType === "abandonment";
 
+      // logging
+      switch (event.eventType) {
+        case "weapon":
+          myLogger.log("========= EVENT TYPE: WEAPON =========");
+          break;
+        case "abandonment":
+          myLogger.log("========= EVENT TYPE: ABANDONMENT =========");
+          break;
+        case "frisking":
+          myLogger.log("========= EVENT TYPE: FRISKING =========");
+          break;
+        default:
+          myLogger.log("========= EVENT TYPE: UNKNOWN =========");
+          break;
+      }
+
       if (isWeaponOrAbandonment) {
-        console.log(savedEvent);
+        myLogger.log("==== BROADCASTING LIVE NOTIFICATION OVER WEBSOCKET ===");
+        myLogger.log([
+          `===== Event id: ${savedEvent._id} =====\n`,
+          `===== Camera name: ${savedEvent.cameraName} ====\n`,
+        ]);
         broadcastMessage({ type: "live", data: savedEvent }, wss);
       }
 
       if (!event.isResolved && !isWeaponOrAbandonment) {
-        console.log(savedEvent);
+        myLogger.log(
+          "==== BROADCASTING UN-RESOLVED NOTIFICATION OVER WEBSOCKET ===",
+        );
+        myLogger.log([
+          `===== Event id: ${savedEvent._id} =====\n`,
+          `===== Camera name: ${savedEvent.cameraName} ====\n`,
+        ]);
         broadcastMessage({ type: "un-resolved", data: savedEvent }, wss);
       }
+
+      myLogger.log("==================== LIFE-CYCLE-END ====================");
+
+      client.on("reconnect", () => {
+        console.log("======= MQTT RECONNECTING =====");
+      });
+
+      client.on("close", () => {
+        console.log("======= MQTT CONNECTION CLOSED =====");
+      });
+
+      client.on("offline", () => {
+        console.log("======= MQTT OFFLINE =====");
+      });
+
+      client.on("error", (error) => {
+        console.log("======= MQTT ERROR =====", error.message);
+      });
     } catch (error) {
       myLogger.log([
         error instanceof Error ? error.message : JSON.stringify(error),

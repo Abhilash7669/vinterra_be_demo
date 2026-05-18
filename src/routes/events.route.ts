@@ -1,18 +1,119 @@
+import { myLogger } from "@/lib/logger/my-logger.js";
 import { CustomAppError } from "@/lib/utils/error.utils.js";
+import { authCookieMiddleware } from "@/middleware/auth.middleware.js";
 import Event from "@/models/events.model.js";
-import { Router } from "express";
+import { Request, Response, Router } from "express";
 
 const eventsRouter = Router();
 
-eventsRouter.get("/", async (req, res) => {
-  const items = Number(req.query.items) || 100;
+const DATE_FILTER_KEYS = new Set(["createdAt", "startDate", "endDate"]);
+
+type CreatedAtFilter = {
+  $gte?: Date;
+  $lt?: Date;
+};
+
+function parseUtcDateOnly(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    throw new CustomAppError("Invalid date filter", 400);
+  }
+
+  return date;
+}
+
+function parseDateFilter(value: unknown): Date | undefined {
+  if (value === undefined) return undefined;
+
+  const queryValue = Array.isArray(value) ? value[0] : value;
+  if (typeof queryValue !== "string") {
+    throw new CustomAppError("Invalid date filter", 400);
+  }
+
+  const dateOnlyValue = parseUtcDateOnly(queryValue);
+  if (dateOnlyValue) {
+    return dateOnlyValue;
+  }
+
+  const date = new Date(queryValue);
+  if (Number.isNaN(date.getTime())) {
+    throw new CustomAppError("Invalid date filter", 400);
+  }
+
+  return date;
+}
+
+function getUtcDayStart(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+  );
+}
+
+function getNextUtcDay(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() + 1),
+  );
+}
+
+function buildCreatedAtFilter(query: Record<string, unknown>) {
+  if (query.createdAt !== undefined) {
+    throw new CustomAppError(
+      "Use startDate and endDate for date filtering",
+      400,
+    );
+  }
+
+  const startDate = parseDateFilter(query.startDate);
+  const endDate = parseDateFilter(query.endDate);
+  const createdAtFilter: CreatedAtFilter = {};
+
+  if (startDate && !endDate) {
+    return {
+      $gte: getUtcDayStart(startDate),
+      $lt: getNextUtcDay(startDate),
+    };
+  }
+
+  if (startDate) {
+    createdAtFilter.$gte = startDate;
+  }
+
+  if (endDate) {
+    createdAtFilter.$lt = endDate;
+  }
+
+  if (
+    createdAtFilter.$gte &&
+    createdAtFilter.$lt &&
+    createdAtFilter.$gte.getTime() >= createdAtFilter.$lt.getTime()
+  ) {
+    throw new CustomAppError("startDate must be before endDate", 400);
+  }
+
+  return Object.keys(createdAtFilter).length ? createdAtFilter : undefined;
+}
+
+eventsRouter.get("/", async (req: Request, res: Response) => {
+  const limit = Number(req.query.limit) || 500;
   const page = Number(req.query.page) || 1;
-  const skip = page > 1 ? (page - 1) * items : 0;
+  const skip = page > 1 ? (page - 1) * limit : 0;
 
   const filter = Object.entries(req.query).reduce<Record<string, unknown>>(
     (queryFilter, [key, value]) => {
       if (value === undefined) return queryFilter;
-      if (key === "items" || key === "page") return queryFilter;
+      if (key === "limit" || key === "page") return queryFilter;
+      if (DATE_FILTER_KEYS.has(key)) return queryFilter;
 
       if (value === "true") {
         queryFilter[key] = true;
@@ -27,8 +128,14 @@ eventsRouter.get("/", async (req, res) => {
     {},
   );
 
-  const events = await Event.find(filter).skip(skip).limit(items);
-  console.log(events, "EVENTS");
+  const createdAtFilter = buildCreatedAtFilter(req.query);
+  if (createdAtFilter) {
+    filter.createdAt = createdAtFilter;
+  }
+
+  console.log("==== FETCHING EVENTS =====");
+  const events = await Event.find(filter).skip(skip).limit(limit);
+  console.log("====== EVENTS SENT IN RESPONSE =====");
   res.json({
     success: true,
     data: events,
@@ -39,10 +146,7 @@ eventsRouter.get("/", async (req, res) => {
 eventsRouter.patch("/:id", async (req, res) => {
   const { isResolved } = req.body;
   const eventId = req.params.id as string;
-  console.log(eventId, "EVENT ID");
-  console.log(isResolved, "IS RESOLVED");
-  console.log(typeof isResolved, "Type of isResolved");
-  // const updatedEvent =
+  myLogger.log(["===== RESOLVING EVENT =====\n", `Event id: ${eventId}`]);
 
   try {
     const event = await Event.findByIdAndUpdate(
@@ -50,11 +154,11 @@ eventsRouter.patch("/:id", async (req, res) => {
       { isResolved },
       { upsert: true },
     );
-
+    myLogger.log(`===== EVENT RESOLVED WITH ID: ${eventId} ======`);
     res.json({
       success: true,
       data: event,
-      message: `${event?.eventType} has been resolved with id: ${event?._id}`,
+      message: `Event type: ${event?.eventType} has been resolved with event-id: ${event?._id}`,
     });
   } catch (error) {
     if (error instanceof Error) {

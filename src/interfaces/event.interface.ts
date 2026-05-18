@@ -62,6 +62,8 @@ export interface IEventsModel extends IEvents, Document {}
 export type EventsParamsDTO = {
   isResolved?: "false" | "true";
   priority?: EventPriority;
+  startDate?: string;
+  endDate?: string;
   startTimestamp?: string;
   endTimestamp?: string;
   confidence?: number;

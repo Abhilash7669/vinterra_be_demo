@@ -39,6 +39,7 @@ export function transformAnalyticsMetadataToEvent(
   };
 }
 
+// Dummy datas for testing
 export const dummyDeviceFriskingMetadata: AnalyticsMetadata = {
   event_type: "frisking",
   camera_name: "file_1",

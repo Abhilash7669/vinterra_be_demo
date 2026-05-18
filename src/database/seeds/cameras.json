@@ -1,0 +1,20 @@
+[
+  {
+    "cameraName": "cpplus_frisking",
+    "location": "Front door",
+    "status": true,
+    "siteId": "Vinterra HQ"
+  },
+  {
+    "cameraName": "dynacolor_general",
+    "location": "Side door",
+    "status": true,
+    "siteId": "Vinterra HQ"
+  },
+  {
+    "cameraName": "dynacolor_abandonment",
+    "location": "Back door",
+    "status": true,
+    "siteId": "Vinterra HQ"
+  }
+]

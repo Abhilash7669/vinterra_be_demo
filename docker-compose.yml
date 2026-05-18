@@ -1,0 +1,34 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: vinterra-demo-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vinterra-demo-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.production
+    environment:
+      DB_URI: mongodb://mongo:27017/vinterra_demo
+    volumes:
+      - ./certs:/app/certs:ro
+
+volumes:
+  mongo-data:

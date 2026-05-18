@@ -1,3 +1,4 @@
+import { myLogger } from "@/lib/logger/my-logger.js";
 import { IncomingMessage } from "http";
 import { WebSocket } from "ws";
 import { Server } from "ws";
@@ -9,7 +10,10 @@ export function broadcastMessage(
   for (const client of _wss.clients) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(message));
-      console.log("Sending message");
+      myLogger.log([
+        "====== BROADCASTING MESSAGE =====\n",
+        `Message: ${JSON.stringify(message)}`,
+      ]);
     }
   }
 }

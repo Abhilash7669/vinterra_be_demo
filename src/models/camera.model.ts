@@ -1,17 +1,20 @@
-import type { ICamera } from "@/interfaces/camera.interface.js";
+import type { ICameraModel } from "@/interfaces/camera.interface.js";
 import { model, Schema } from "mongoose";
 
-export const cameraSchema = new Schema<ICamera>(
+export const cameraSchema = new Schema<ICameraModel>(
   {
-    name: {
+    cameraName: {
       type: String,
       required: true,
       trim: true,
     },
     location: {
       type: String,
-      required: true,
       trim: true,
+    },
+    status: {
+      type: Boolean,
+      required: true,
     },
     siteId: {
       type: String,
@@ -27,5 +30,5 @@ export const cameraSchema = new Schema<ICamera>(
   },
 );
 
-const Camera = model<ICamera>("Camera", cameraSchema, "cameras");
+const Camera = model<ICameraModel>("Camera", cameraSchema, "cameras");
 export default Camera;
