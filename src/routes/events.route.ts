@@ -134,7 +134,10 @@ eventsRouter.get("/", async (req: Request, res: Response) => {
   }
 
   console.log("==== FETCHING EVENTS =====");
-  const events = await Event.find(filter).skip(skip).limit(limit);
+  const events = await Event.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
   console.log("====== EVENTS SENT IN RESPONSE =====");
   res.json({
     success: true,
