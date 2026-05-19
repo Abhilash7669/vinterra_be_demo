@@ -15,6 +15,7 @@ import { saveCameras } from "@/service/camera.service.js";
 import cookieParser from "cookie-parser";
 import { broadcastMessage } from "@/lib/utils/websocket/websocket.utils.js";
 import { v4 } from "uuid";
+import { onSocketPreError } from "@/lib/utils/websocket/error/websocket-pre-error.utils.js";
 
 // ==== SERVERS ==== //
 const app = express();
@@ -25,9 +26,32 @@ app.use(cors(CORS_OPTIONS));
 app.use(express.json()); // to parse incoming json data
 app.use(cookieParser()); // parse cookies
 
+const SOCKET_CLIENTS = new Map<string | undefined, WebSocket>();
+
 // === WEB-SOCKET === //
 
 export const wss = new WebSocketServer({ server: server, path: "/ws" });
+
+server.on("upgrade", async (req, socket, head) => {
+  socket.on("error", onSocketPreError);
+  // todo: uncomment when implementing auth
+  // myLogger.log([req.headers.cookie, "cookie"]);
+  // if (!req.headers.cookie) {
+  //   myLogger.log("Destroying socket");
+  //   socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+  //   socket.destroy();
+  //   return;
+  // }
+  const socketClientKey = req.headers.cookie;
+
+  wss.handleUpgrade(req, socket, head, (client) => {
+    socket.removeListener("error", onSocketPreError);
+    // set socket client
+    SOCKET_CLIENTS.set(socketClientKey, client);
+
+    wss.emit("connection", client, req);
+  });
+});
 
 wss.on("connection", (ws, req) => {
   myLogger.log("========= WEBSOCKET CONNECTED =========");

@@ -1,10 +1,12 @@
 import {
   EventPriority,
   EventType,
+  type EventComplianceStatus,
   type AnalyticsMetadata,
   type IEvents,
 } from "@/interfaces/event.interface.js";
 import { CustomAppError } from "@/lib/utils/error.utils.js";
+import Camera from "@/models/camera.model.js";
 import Event from "@/models/events.model.js";
 
 function getEventPriority(eventType: EventType): EventPriority {
@@ -22,11 +24,24 @@ function getEventPriority(eventType: EventType): EventPriority {
 export function transformAnalyticsMetadataToEvent(
   metadata: AnalyticsMetadata,
 ): IEvents {
-  const eventType = metadata.event_type;
-  const isResolved =
-    eventType === "frisking" ? metadata.frisking_complete === 1 : false;
+  console.log(`==== TRANSFORMING EVENT =====`);
+  console.log(`=== EVENT TYPE: ${metadata.event_type}`);
 
-  return {
+  if (metadata.event_type === "frisking") {
+    console.log(
+      `===== FRISKING STATUS: ${metadata.frisking_complete} && value: ${metadata.frisking_complete === 1} && type of value: ${typeof metadata.frisking_complete}`,
+    );
+  }
+
+  const eventType = metadata.event_type;
+  const isFriskingComplete =
+    eventType === "frisking" && metadata.frisking_complete === 1;
+  const isResolved = eventType === "frisking" ? isFriskingComplete : false;
+  const complianceStatus: EventComplianceStatus = isFriskingComplete
+    ? "compliant"
+    : "non_compliant";
+
+  const _event = {
     cameraName: metadata.camera_name,
     eventType,
     confidence: metadata.confidence,
@@ -34,9 +49,15 @@ export function transformAnalyticsMetadataToEvent(
     endTimestamp: new Date(metadata.end_timestamp_us / 1000),
     event: JSON.stringify(metadata.event),
     thumbnailSize: metadata.thumbnail_size,
+    complianceStatus,
     isResolved,
     priority: getEventPriority(eventType),
-  };
+  } satisfies IEvents;
+
+  console.log(`====== FINAL SAVED EVENT =====`);
+  console.log(_event);
+
+  return _event;
 }
 
 // Dummy datas for testing
@@ -92,6 +113,7 @@ export async function saveEvent(data: IEvents) {
   const {
     cameraName,
     confidence,
+    complianceStatus,
     endTimestamp,
     event,
     eventType,
@@ -101,9 +123,12 @@ export async function saveEvent(data: IEvents) {
     priority,
   } = data;
   try {
-    const eventCreated = Event.create({
+    const camera = await Camera.findOne({ cameraName }).select("_id").lean();
+    const eventCreated = await Event.create({
       confidence,
       cameraName,
+      ...(camera ? { cameraId: camera._id } : {}),
+      complianceStatus,
       endTimestamp,
       startTimestamp,
       event,

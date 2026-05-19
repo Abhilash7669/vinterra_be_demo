@@ -7,6 +7,11 @@ import { model, Schema } from "mongoose";
 
 export const eventSchema = new Schema<IEventsModel>(
   {
+    cameraId: {
+      type: Schema.Types.ObjectId,
+      ref: "Camera",
+      index: true,
+    },
     cameraName: {
       type: String,
       required: true,
@@ -39,6 +44,12 @@ export const eventSchema = new Schema<IEventsModel>(
     thumbnailSize: {
       type: Number,
       default: 0,
+    },
+    complianceStatus: {
+      type: String,
+      required: true,
+      enum: ["compliant", "non_compliant"],
+      index: true,
     },
     isResolved: {
       type: Boolean,

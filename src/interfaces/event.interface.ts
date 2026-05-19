@@ -1,8 +1,10 @@
-import { Document } from "mongoose";
+import { Document, Types } from "mongoose";
 
 export type EventType = "frisking" | "abandonment" | "weapon";
 
 export type EventPriority = "high" | "medium" | "low";
+
+export type EventComplianceStatus = "compliant" | "non_compliant";
 
 interface AnalyticsBbox {
   x1: number;
@@ -46,6 +48,7 @@ export type AnalyticsMetadata = AnalyticsEvent & {
 };
 
 export interface IEvents {
+  cameraId?: Types.ObjectId;
   cameraName: string;
   eventType: EventType;
   confidence: number;
@@ -53,14 +56,34 @@ export interface IEvents {
   endTimestamp: Date;
   event: string;
   thumbnailSize: number;
+  complianceStatus: EventComplianceStatus;
   isResolved: boolean;
   priority: EventPriority;
 }
 
 export interface IEventsModel extends IEvents, Document {}
 
+export type EventsPaginationDTO = {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  lastPage: number;
+  currentPageItems: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  nextPage: number | null;
+  prevPage: number | null;
+};
+
+export type EventsListDataDTO<TEvent> = {
+  events: TEvent[];
+  pagination: EventsPaginationDTO;
+};
+
 export type EventsParamsDTO = {
   isResolved?: "false" | "true";
+  complianceStatus?: EventComplianceStatus;
   priority?: EventPriority;
   startDate?: string;
   endDate?: string;

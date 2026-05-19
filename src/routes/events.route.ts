@@ -13,6 +13,22 @@ type CreatedAtFilter = {
   $lt?: Date;
 };
 
+type PopulatedCamera = {
+  _id?: unknown;
+  cameraName?: string;
+};
+
+function parsePositiveInteger(value: unknown, fallback: number): number {
+  const queryValue = Array.isArray(value) ? value[0] : value;
+  const parsedValue = Number(queryValue);
+
+  if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+    return fallback;
+  }
+
+  return parsedValue;
+}
+
 function parseUtcDateOnly(value: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return null;
@@ -105,8 +121,8 @@ function buildCreatedAtFilter(query: Record<string, unknown>) {
 }
 
 eventsRouter.get("/", async (req: Request, res: Response) => {
-  const limit = Number(req.query.limit) || 500;
-  const page = Number(req.query.page) || 1;
+  const limit = parsePositiveInteger(req.query.limit, 500);
+  const page = parsePositiveInteger(req.query.page, 1);
   const skip = page > 1 ? (page - 1) * limit : 0;
 
   const filter = Object.entries(req.query).reduce<Record<string, unknown>>(
@@ -133,15 +149,49 @@ eventsRouter.get("/", async (req: Request, res: Response) => {
     filter.createdAt = createdAtFilter;
   }
 
-  console.log("==== FETCHING EVENTS =====");
-  const events = await Event.find(filter)
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
-  console.log("====== EVENTS SENT IN RESPONSE =====");
+  const [events, totalItems] = await Promise.all([
+    Event.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate({ path: "cameraId", select: "cameraName" })
+      .lean(),
+    Event.countDocuments(filter),
+  ]);
+  const eventResponses = events.map((event) => {
+    const populatedCamera =
+      typeof event.cameraId === "object" && event.cameraId !== null
+        ? (event.cameraId as PopulatedCamera)
+        : undefined;
+
+    return {
+      ...event,
+      cameraId: populatedCamera?._id ?? event.cameraId,
+      cameraName: populatedCamera?.cameraName ?? event.cameraName,
+    };
+  });
+  const totalPages = Math.ceil(totalItems / limit);
+  const lastPage = totalPages || 1;
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
   res.json({
     success: true,
-    data: events,
+    data: {
+      events: eventResponses,
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages,
+        lastPage,
+        currentPageItems: eventResponses.length,
+        hasNextPage,
+        hasPrevPage,
+        nextPage: hasNextPage ? page + 1 : null,
+        prevPage: hasPrevPage ? page - 1 : null,
+      },
+    },
     message: "Events fetched successfully",
   });
 });

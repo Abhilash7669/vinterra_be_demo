@@ -53,9 +53,11 @@ export async function connectMqtt() {
       const event = transformAnalyticsMetadataToEvent(deviceEventMetadata);
       myLogger.log("==== SAVING EVENT =====");
       const savedEvent = await saveEvent(event);
-      myLogger.log("==== EVENT SAVED =====");
+      myLogger.log(`===== MONGODB SAVED EVENT: ${savedEvent} =====`);
       const isWeaponOrAbandonment =
         event.eventType === "weapon" || event.eventType === "abandonment";
+
+      const isFrisking = event.eventType === "frisking";
 
       // logging
       switch (event.eventType) {
@@ -82,7 +84,7 @@ export async function connectMqtt() {
         broadcastMessage({ type: "live", data: savedEvent }, wss);
       }
 
-      if (!event.isResolved && !isWeaponOrAbandonment) {
+      if (!event.isResolved && isFrisking) {
         myLogger.log(
           "==== BROADCASTING UN-RESOLVED NOTIFICATION OVER WEBSOCKET ===",
         );
@@ -94,22 +96,6 @@ export async function connectMqtt() {
       }
 
       myLogger.log("==================== LIFE-CYCLE-END ====================");
-
-      client.on("reconnect", () => {
-        console.log("======= MQTT RECONNECTING =====");
-      });
-
-      client.on("close", () => {
-        console.log("======= MQTT CONNECTION CLOSED =====");
-      });
-
-      client.on("offline", () => {
-        console.log("======= MQTT OFFLINE =====");
-      });
-
-      client.on("error", (error) => {
-        console.log("======= MQTT ERROR =====", error.message);
-      });
     } catch (error) {
       myLogger.log([
         error instanceof Error ? error.message : JSON.stringify(error),
@@ -120,6 +106,22 @@ export async function connectMqtt() {
         500,
       );
     }
+  });
+
+  client.on("reconnect", () => {
+    console.log("======= MQTT RECONNECTING =====");
+  });
+
+  client.on("close", () => {
+    console.log("======= MQTT CONNECTION CLOSED =====");
+  });
+
+  client.on("offline", () => {
+    console.log("======= MQTT OFFLINE =====");
+  });
+
+  client.on("error", (error) => {
+    console.log("======= MQTT ERROR =====", error.message);
   });
 
   return client;
