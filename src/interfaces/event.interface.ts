@@ -6,7 +6,7 @@ export type EventPriority = "high" | "medium" | "low";
 
 export type EventComplianceStatus = "compliant" | "non_compliant";
 
-interface AnalyticsBbox {
+export interface AnalyticsBbox {
   x1: number;
   y1: number;
   x2: number;
@@ -20,22 +20,31 @@ interface AnalyticsKeypoint {
   activated_at_us: number;
 }
 
-interface FriskingMeta {
-  subject_bbox: AnalyticsBbox;
-  guard_bbox: AnalyticsBbox;
-  keypoints: AnalyticsKeypoint[];
+export interface FriskingZone {
+  zone_name: string;
+  activated_at_us: number;
 }
 
-interface AbandonmentMeta {
+export interface FriskingMeta {
+  subject_bbox: AnalyticsBbox;
+  guard_bbox: AnalyticsBbox;
+  zones: FriskingZone[];
+  frisking_complete: 0 | 1;
+  keypoints?: AnalyticsKeypoint[];
+}
+
+export interface AbandonmentMeta {
   object_bbox: AnalyticsBbox;
 }
 
-interface WeaponMeta {
+export interface WeaponMeta {
   weapon_bbox: AnalyticsBbox;
 }
 
+export type EventMetadata = FriskingMeta | AbandonmentMeta | WeaponMeta;
+
 type AnalyticsEvent =
-  | { event_type: "frisking"; event: FriskingMeta; frisking_complete: 0 | 1 }
+  | { event_type: "frisking"; event: FriskingMeta; frisking_complete?: 0 | 1 }
   | { event_type: "abandonment"; event: AbandonmentMeta }
   | { event_type: "weapon"; event: WeaponMeta };
 
@@ -52,9 +61,11 @@ export interface IEvents {
   cameraName: string;
   eventType: EventType;
   confidence: number;
+  startTimestampUs: number;
+  endTimestampUs: number;
   startTimestamp: Date;
   endTimestamp: Date;
-  event: string;
+  event: EventMetadata;
   thumbnailSize: number;
   complianceStatus: EventComplianceStatus;
   isResolved: boolean;

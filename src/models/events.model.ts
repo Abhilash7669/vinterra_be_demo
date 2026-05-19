@@ -27,6 +27,16 @@ export const eventSchema = new Schema<IEventsModel>(
       required: true,
       min: 0,
     },
+    startTimestampUs: {
+      type: Number,
+      required: true,
+      index: true,
+    },
+    endTimestampUs: {
+      type: Number,
+      required: true,
+      index: true,
+    },
     startTimestamp: {
       type: Date,
       required: true,
@@ -38,7 +48,7 @@ export const eventSchema = new Schema<IEventsModel>(
       index: true,
     },
     event: {
-      type: String,
+      type: Schema.Types.Mixed,
       required: true,
     },
     thumbnailSize: {

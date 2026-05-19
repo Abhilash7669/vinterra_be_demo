@@ -34,8 +34,12 @@ export function transformAnalyticsMetadataToEvent(
   }
 
   const eventType = metadata.event_type;
+  const friskingComplete =
+    eventType === "frisking"
+      ? (metadata.event.frisking_complete ?? metadata.frisking_complete ?? 0)
+      : 0;
   const isFriskingComplete =
-    eventType === "frisking" && metadata.frisking_complete === 1;
+    eventType === "frisking" && friskingComplete === 1;
   const isResolved = eventType === "frisking" ? isFriskingComplete : false;
   const complianceStatus: EventComplianceStatus = isFriskingComplete
     ? "compliant"
@@ -45,9 +49,11 @@ export function transformAnalyticsMetadataToEvent(
     cameraName: metadata.camera_name,
     eventType,
     confidence: metadata.confidence,
+    startTimestampUs: metadata.start_timestamp_us,
+    endTimestampUs: metadata.end_timestamp_us,
     startTimestamp: new Date(metadata.start_timestamp_us / 1000),
     endTimestamp: new Date(metadata.end_timestamp_us / 1000),
-    event: JSON.stringify(metadata.event),
+    event: metadata.event,
     thumbnailSize: metadata.thumbnail_size,
     complianceStatus,
     isResolved,
@@ -82,7 +88,17 @@ export const dummyDeviceFriskingMetadata: AnalyticsMetadata = {
       x2: 650,
       y2: 650,
     },
-    keypoints: [],
+    zones: [
+      {
+        zone_name: "L_Shoulder_F",
+        activated_at_us: 0,
+      },
+      {
+        zone_name: "Chest_F",
+        activated_at_us: 1_717_243_201_000_000,
+      },
+    ],
+    frisking_complete: 0,
   },
 };
 
@@ -115,10 +131,12 @@ export async function saveEvent(data: IEvents) {
     confidence,
     complianceStatus,
     endTimestamp,
+    endTimestampUs,
     event,
     eventType,
     isResolved,
     startTimestamp,
+    startTimestampUs,
     thumbnailSize,
     priority,
   } = data;
@@ -130,7 +148,9 @@ export async function saveEvent(data: IEvents) {
       ...(camera ? { cameraId: camera._id } : {}),
       complianceStatus,
       endTimestamp,
+      endTimestampUs,
       startTimestamp,
+      startTimestampUs,
       event,
       eventType,
       isResolved,
