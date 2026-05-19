@@ -44,7 +44,7 @@ export interface WeaponMeta {
 export type EventMetadata = FriskingMeta | AbandonmentMeta | WeaponMeta;
 
 type AnalyticsEvent =
-  | { event_type: "frisking"; event: FriskingMeta; frisking_complete?: 0 | 1 }
+  | { event_type: "frisking"; event: FriskingMeta; }
   | { event_type: "abandonment"; event: AbandonmentMeta }
   | { event_type: "weapon"; event: WeaponMeta };
 

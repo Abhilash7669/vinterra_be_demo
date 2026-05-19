@@ -15,6 +15,8 @@ import { saveCameras } from "@/service/camera.service.js";
 import cookieParser from "cookie-parser";
 import { broadcastMessage } from "@/lib/utils/websocket/websocket.utils.js";
 import { v4 } from "uuid";
+import { onSocketPreError } from "@/lib/utils/websocket/error/websocket-pre-error.utils.js";
+import { AliveWebSocket } from "@/types/websocket.types.js";
 
 // ==== SERVERS ==== //
 const app = express();
@@ -28,38 +30,42 @@ app.use(cookieParser()); // parse cookies
 const SOCKET_CLIENTS = new Map<string, WebSocket>();
 
 // === WEB-SOCKET === //
-
 export const wss = new WebSocketServer({ server: server, path: "/ws" });
 
-wss.on("connection", (ws, req) => {
-  const socketClientKey = v4();
+wss.on("connection", (ws: AliveWebSocket, req) => {
+  // todo: uncomment when implementing auth
+  // myLogger.log([req.headers.cookie, "cookie"]);
+  // if (!req.headers.cookie) {
+  //   myLogger.log("Destroying socket");
+  //   socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+  //   socket.destroy();
+  //   return;
+  // }
+  // const socketClientKey = req.headers.cookie;
 
-  SOCKET_CLIENTS.set(socketClientKey, ws);
-  myLogger.log(`===== ADDING WEBSOCKET CLIENT: ${socketClientKey} =====`);
-  myLogger.log("========= WEBSOCKET CONNECTED =========");
+  ws.isAlive = true;
 
-  ws.once("close", () => {
-    SOCKET_CLIENTS.delete(socketClientKey);
-    myLogger.log(`=== REMOVING WEBSOCKET CLIENT: ${socketClientKey} ======`);
+  // response from browser
+  ws.on("pong", () => {
+    myLogger.log("===== RECEIVED WEBSOCKET PONG =====");
+    ws.isAlive = true;
   });
 
-  // setInterval(() => {
-  //   broadcastMessage(
-  //     {
-  //       type: "live",
-  //       data: {
-  //         _id: v4(),
-  //         type: "frisking",
-  //         camera: "cpplus_frisking",
-  //         priority: "medium",
-  //         status: "un-resolved",
-  //         createdAt: "2026-05-06T08:15:00Z",
-  //       },
-  //     },
-  //     wss,
-  //   );
-  // }, 5000);
+  const socketClientKey = v4();
+  SOCKET_CLIENTS.set(socketClientKey, ws);
+
+  myLogger.log(`===== ADDING WEBSOCKET CLIENT: ${socketClientKey} =====`);
+  myLogger.log("DUMMY");
+  myLogger.log("========= WEBSOCKET CONNECTED =========");
   ws.on("error", onSocketPostError);
+  ws.once("close", (code, reason) => {
+    SOCKET_CLIENTS.delete(socketClientKey);
+    myLogger.log([
+      `=== REMOVING a WEBSOCKET CLIENT: ${socketClientKey} ======`,
+      `code: ${code}`,
+      `reason: ${reason.toString()}`,
+    ]);
+  });
   ws.on("message", (data: WebSocket.RawData) => {
     const _data = data.toString();
     myLogger.log([
@@ -68,8 +74,28 @@ wss.on("connection", (ws, req) => {
     ]);
   });
 });
+
+const heartbeatInterval = setInterval(() => {
+  if (!wss) {
+    myLogger.log("NO WEBSOCKET INSTANCE FOUND");
+    return;
+  }
+  wss.clients.forEach((_ws) => {
+    const _socket = _ws as AliveWebSocket;
+    if (_socket.isAlive === false) {
+      myLogger.log("===== TERMINATING DEAD WEBSOCKET CLIENT =====");
+      _socket.terminate();
+      return;
+    }
+    myLogger.log("===== PINGING CLIENT =====");
+    _socket.isAlive = false;
+    _socket.ping();
+  });
+}, 10000);
+
 wss.on("close", () => {
   myLogger.log("Connection closed");
+  clearInterval(heartbeatInterval);
 });
 
 // ==== INITIATE ROUTES ==== //

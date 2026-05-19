@@ -29,17 +29,14 @@ export function transformAnalyticsMetadataToEvent(
 
   if (metadata.event_type === "frisking") {
     console.log(
-      `===== FRISKING STATUS: ${metadata.frisking_complete} && value: ${metadata.frisking_complete === 1} && type of value: ${typeof metadata.frisking_complete}`,
+      `===== FRISKING STATUS: ${metadata.event.frisking_complete} && value: ${metadata.event.frisking_complete === 1} && type of value: ${typeof metadata.event.frisking_complete}`,
     );
   }
 
   const eventType = metadata.event_type;
   const friskingComplete =
-    eventType === "frisking"
-      ? (metadata.event.frisking_complete ?? metadata.frisking_complete ?? 0)
-      : 0;
-  const isFriskingComplete =
-    eventType === "frisking" && friskingComplete === 1;
+    eventType === "frisking" ? metadata.event.frisking_complete : 0;
+  const isFriskingComplete = eventType === "frisking" && friskingComplete === 1;
   const isResolved = eventType === "frisking" ? isFriskingComplete : false;
   const complianceStatus: EventComplianceStatus = isFriskingComplete
     ? "compliant"
@@ -67,63 +64,63 @@ export function transformAnalyticsMetadataToEvent(
 }
 
 // Dummy datas for testing
-export const dummyDeviceFriskingMetadata: AnalyticsMetadata = {
-  event_type: "frisking",
-  camera_name: "file_1",
-  confidence: 0.94,
-  start_timestamp_us: 1_717_243_200_000_000,
-  end_timestamp_us: 1_717_243_205_000_000,
-  thumbnail_size: 4096,
-  frisking_complete: 0,
-  event: {
-    subject_bbox: {
-      x1: 120,
-      y1: 80,
-      x2: 360,
-      y2: 640,
-    },
-    guard_bbox: {
-      x1: 420,
-      y1: 90,
-      x2: 650,
-      y2: 650,
-    },
-    zones: [
-      {
-        zone_name: "L_Shoulder_F",
-        activated_at_us: 0,
-      },
-      {
-        zone_name: "Chest_F",
-        activated_at_us: 1_717_243_201_000_000,
-      },
-    ],
-    frisking_complete: 0,
-  },
-};
+// export const dummyDeviceFriskingMetadata: AnalyticsMetadata = {
+//   event_type: "frisking",
+//   camera_name: "file_1",
+//   confidence: 0.94,
+//   start_timestamp_us: 1_717_243_200_000_000,
+//   end_timestamp_us: 1_717_243_205_000_000,
+//   thumbnail_size: 4096,
+//   frisking_complete: 0,
+//   event: {
+//     subject_bbox: {
+//       x1: 120,
+//       y1: 80,
+//       x2: 360,
+//       y2: 640,
+//     },
+//     guard_bbox: {
+//       x1: 420,
+//       y1: 90,
+//       x2: 650,
+//       y2: 650,
+//     },
+//     zones: [
+//       {
+//         zone_name: "L_Shoulder_F",
+//         activated_at_us: 0,
+//       },
+//       {
+//         zone_name: "Chest_F",
+//         activated_at_us: 1_717_243_201_000_000,
+//       },
+//     ],
+//     frisking_complete: 0,
+//   },
+// };
 
-export const dummyDeviceWeaponMetadata: AnalyticsMetadata = {
-  event_type: "weapon",
-  camera_name: "file_2",
-  confidence: 0.50976449251174927,
-  start_timestamp_us: 3_400_000,
-  end_timestamp_us: 3_400_000,
-  thumbnail_size: 0,
-  event: {
-    weapon_bbox: {
-      x1: 299.4609375,
-      y1: 188.1875,
-      x2: 326.4375,
-      y2: 216.4140625,
-    },
-  },
-};
+// export const dummyDeviceWeaponMetadata: AnalyticsMetadata = {
+//   event_type: "weapon",
+//   camera_name: "file_2",
+//   confidence: 0.50976449251174927,
+//   start_timestamp_us: 3_400_000,
+//   end_timestamp_us: 3_400_000,
+//   thumbnail_size: 0,
+//   event: {
+//     weapon_bbox: {
+//       x1: 299.4609375,
+//       y1: 188.1875,
+//       x2: 326.4375,
+//       y2: 216.4140625,
+//     },
+//   },
+// };
 
-export const dummyBackendFriskingEvent: IEvents =
-  transformAnalyticsMetadataToEvent(dummyDeviceFriskingMetadata);
+// export const dummyBackendFriskingEvent: IEvents =
+//   transformAnalyticsMetadataToEvent(dummyDeviceFriskingMetadata);
 
-export const dummyBackendWeaponEvent: IEvents =
-  transformAnalyticsMetadataToEvent(dummyDeviceWeaponMetadata);
+// export const dummyBackendWeaponEvent: IEvents =
+//   transformAnalyticsMetadataToEvent(dummyDeviceWeaponMetadata);
 
 export async function saveEvent(data: IEvents) {
   const {
