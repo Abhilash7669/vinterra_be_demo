@@ -47,7 +47,7 @@ wss.on("connection", (ws: AliveWebSocket, req) => {
 
   // response from browser
   ws.on("pong", () => {
-    myLogger.log("===== RECEIVED WEBSOCKET PONG =====");
+    // myLogger.log("===== RECEIVED WEBSOCKET PONG =====");
     ws.isAlive = true;
   });
 
@@ -55,7 +55,6 @@ wss.on("connection", (ws: AliveWebSocket, req) => {
   SOCKET_CLIENTS.set(socketClientKey, ws);
 
   myLogger.log(`===== ADDING WEBSOCKET CLIENT: ${socketClientKey} =====`);
-  myLogger.log("DUMMY");
   myLogger.log("========= WEBSOCKET CONNECTED =========");
   ws.on("error", onSocketPostError);
   ws.once("close", (code, reason) => {
@@ -83,11 +82,11 @@ const heartbeatInterval = setInterval(() => {
   wss.clients.forEach((_ws) => {
     const _socket = _ws as AliveWebSocket;
     if (_socket.isAlive === false) {
-      myLogger.log("===== TERMINATING DEAD WEBSOCKET CLIENT =====");
+      // myLogger.log("===== TERMINATING DEAD WEBSOCKET CLIENT =====");
       _socket.terminate();
       return;
     }
-    myLogger.log("===== PINGING CLIENT =====");
+    // myLogger.log("===== PINGING CLIENT =====");
     _socket.isAlive = false;
     _socket.ping();
   });
